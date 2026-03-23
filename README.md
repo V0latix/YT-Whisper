@@ -1,6 +1,26 @@
 # yt-whisper
 
-Extract text from YouTube videos using [Whisper](https://github.com/openai/whisper) via [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2 backend — same speed as [whisper.cpp](https://github.com/ggml-org/whisper.cpp)).
+> Transcribe any YouTube video to text in one command.
+
+[![PyPI](https://img.shields.io/pypi/v/yt-whisper)](https://pypi.org/project/yt-whisper/)
+[![Python](https://img.shields.io/pypi/pyversions/yt-whisper)](https://pypi.org/project/yt-whisper/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+`yt-whisper` downloads the audio from a YouTube URL and runs it through [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2 backend — comparable speed to [whisper.cpp](https://github.com/ggml-org/whisper.cpp)) or [Moonshine](https://github.com/usefulsensors/moonshine) for English-only content. Output can be plain text, SRT/VTT subtitles, or JSON with timestamps.
+
+---
+
+## Features
+
+- **One command** — paste a URL, get a transcript
+- **Multiple models** — tiny to large-v3-turbo (Whisper) or Moonshine for ultra-fast English transcription
+- **Multiple formats** — `.txt`, `.srt`, `.vtt`, `.json`, or all at once
+- **Auto language detection** — or force a specific language
+- **Translation** — translate any language to English via Whisper
+- **GPU support** — CUDA auto-detected, or force `cpu`/`cuda`/`auto`
+- **Rich terminal UI** — progress spinners, video metadata panel, transcription stats
+
+---
 
 ## Requirements
 
@@ -11,128 +31,145 @@ Extract text from YouTube videos using [Whisper](https://github.com/openai/whisp
 # macOS
 brew install ffmpeg
 
-# Ubuntu/Debian
+# Ubuntu / Debian
 sudo apt install ffmpeg
 
 # Windows
 winget install ffmpeg
 ```
 
+---
+
 ## Installation
 
 ```bash
-# Whisper only (default)
 pip install yt-whisper
+```
 
-# With Moonshine support
+With [Moonshine](https://github.com/usefulsensors/moonshine) support (English-only, faster on short clips):
+
+```bash
 pip install 'yt-whisper[moonshine]'
 ```
 
-Or install from source:
+Install from source:
 
 ```bash
 git clone https://github.com/V0latix/YT-Whisper
-cd yt-whisper
+cd YT-Whisper
 pip install -e .
 ```
 
-## Usage
+---
+
+## Quick Start
 
 ```bash
 yt-whisper "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ```
 
+The transcript is printed to the terminal and saved as `<video-title>.txt` in the current directory.
+
+---
+
+## Usage
+
+```
+yt-whisper [OPTIONS] URL
+```
+
 ### Options
 
-```
-Arguments:
-  URL                    YouTube video URL [required]
-
-Options:
-  -m, --model TEXT       Model to use [default: base]
-                         Whisper : tiny | tiny.en | base | base.en | small | small.en |
-                                   medium | medium.en | large-v1 | large-v2 | large-v3 | large-v3-turbo
-                         Moonshine: moonshine-tiny | moonshine-base  (English-only, requires [moonshine] extra)
-  -l, --language TEXT    Force language (e.g. 'fr', 'en'). Auto-detect if not set. Ignored for Moonshine.
-  -t, --task [transcribe|translate]
-                         transcribe = keep original language
-                         translate  = translate to English [default: transcribe]
-                         (ignored for Moonshine)
-  -o, --output-dir PATH  Directory to save output files [default: current directory]
-  -f, --format [txt|srt|vtt|json|all]
-                         Output format [default: txt]
-  -d, --device TEXT      Inference device: cpu, cuda, or auto [default: auto]
-  -p, --print / --no-print
-                         Print transcription to stdout [default: print]
-  -v, --version          Show version and exit.
-  --help                 Show this message and exit.
-```
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--model` | `-m` | `base` | Model name (see [Models](#models)) |
+| `--language` | `-l` | auto | Force language code, e.g. `fr`, `en` |
+| `--task` | `-t` | `transcribe` | `transcribe` or `translate` (→ English) |
+| `--output-dir` | `-o` | `.` | Directory to save output files |
+| `--format` | `-f` | `txt` | `txt`, `srt`, `vtt`, `json`, or `all` |
+| `--device` | `-d` | `auto` | `cpu`, `cuda`, or `auto` |
+| `--print/--no-print` | `-p` | print | Print transcript to stdout |
+| `--version` | `-v` | — | Show version and exit |
 
 ### Examples
 
 ```bash
-# Basic transcription (outputs .txt)
+# Basic transcription → saves <title>.txt
 yt-whisper "https://youtube.com/watch?v=..."
 
-# Use a larger model for better accuracy
+# Higher accuracy with a larger model
 yt-whisper "https://youtube.com/watch?v=..." --model large-v3
 
 # Generate SRT subtitles
 yt-whisper "https://youtube.com/watch?v=..." --format srt
 
-# Generate all formats at once
+# Generate every format at once
 yt-whisper "https://youtube.com/watch?v=..." --format all
 
-# Force French language
-yt-whisper "https://youtube.com/watch?v=..." --language fr
+# Force French, then translate to English
+yt-whisper "https://youtube.com/watch?v=..." --language fr --task translate
 
-# Translate to English
-yt-whisper "https://youtube.com/watch?v=..." --task translate
-
-# Save to a specific directory
+# Save files to a specific folder
 yt-whisper "https://youtube.com/watch?v=..." --output-dir ./transcripts
 
-# Use GPU if available
+# Run on GPU
 yt-whisper "https://youtube.com/watch?v=..." --device cuda
 
-# Don't print to stdout (just save files)
+# Silent — save file only, no stdout
 yt-whisper "https://youtube.com/watch?v=..." --no-print
+
+# Use Moonshine for fast English-only transcription
+yt-whisper "https://youtube.com/watch?v=..." --model moonshine-base
 ```
+
+---
 
 ## Models
 
-### Whisper (multilingual, default)
+### Whisper — multilingual
 
-| Model          | Parameters | Languages    | Speed   |
-|----------------|-----------|--------------|---------|
-| tiny           | 39M       | multilingual | ~32x    |
-| base           | 74M       | multilingual | ~16x    |
-| small          | 244M      | multilingual | ~6x     |
-| medium         | 769M      | multilingual | ~2x     |
-| large-v3       | 1550M     | multilingual | 1x      |
-| large-v3-turbo | 809M      | multilingual | ~2x     |
+| Model | Params | Languages | Relative speed |
+|---|---|---|---|
+| `tiny` | 39 M | multilingual | ~32× |
+| `tiny.en` | 39 M | English only | ~32× |
+| `base` | 74 M | multilingual | ~16× |
+| `base.en` | 74 M | English only | ~16× |
+| `small` | 244 M | multilingual | ~6× |
+| `small.en` | 244 M | English only | ~6× |
+| `medium` | 769 M | multilingual | ~2× |
+| `medium.en` | 769 M | English only | ~2× |
+| `large-v1` | 1 550 M | multilingual | 1× |
+| `large-v2` | 1 550 M | multilingual | 1× |
+| `large-v3` | 1 550 M | multilingual | 1× |
+| `large-v3-turbo` | 809 M | multilingual | ~2× |
 
-### Moonshine (English-only, faster for short content)
+### Moonshine — English-only (`[moonshine]` extra required)
 
-Requires `pip install 'yt-whisper[moonshine]'`. Moonshine scales compute with audio length (unlike Whisper's fixed 30s chunks), making it faster for short clips.
+Moonshine scales compute with audio length (unlike Whisper's fixed 30 s chunks), making it significantly faster for short clips.
 
-| Model           | Parameters | WER   |
-|-----------------|-----------|-------|
-| moonshine-tiny  | 26M       | 12.7% |
-| moonshine-base  | 61M       | 10.1% |
+| Model | Params | WER |
+|---|---|---|
+| `moonshine-tiny` | 26 M | 12.7 % |
+| `moonshine-base` | 61 M | 10.1 % |
 
 Models are downloaded automatically on first use and cached at `~/.cache/huggingface/`.
 
+---
+
 ## Output Formats
 
-| Format | Description                          |
-|--------|--------------------------------------|
-| `txt`  | Plain text transcript                |
-| `srt`  | SubRip subtitles (for video players) |
-| `vtt`  | WebVTT subtitles (for web players)   |
-| `json` | Full data with timestamps            |
-| `all`  | All formats at once                  |
+| Format | Description |
+|--------|-------------|
+| `txt` | Plain text transcript |
+| `srt` | SubRip subtitles — for video players (VLC, mpv, …) |
+| `vtt` | WebVTT subtitles — for web players and YouTube |
+| `json` | Full data with per-segment timestamps |
+| `all` | All four formats at once |
+
+Output files are named after the video title and saved to the current directory (or `--output-dir`).
+
+---
 
 ## License
 
-MIT
+[MIT](LICENSE)
