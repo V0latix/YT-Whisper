@@ -14,11 +14,11 @@ from rich.table import Table
 from . import __version__
 from .downloader import download_audio, get_video_info
 from .formatters import FORMATTERS, write_output
-from .transcriber import MODELS, transcribe
+from .transcriber import MODELS, MOONSHINE_MODELS, transcribe
 
 app = typer.Typer(
     name="yt-whisper",
-    help="Extract text from YouTube videos using Whisper.",
+    help="Extract text from YouTube videos using Whisper or Moonshine.",
     add_completion=False,
     rich_markup_mode="rich",
 )
@@ -50,15 +50,21 @@ def main(
     url: Annotated[str, typer.Argument(help="YouTube video URL")],
     model: Annotated[
         str,
-        typer.Option("--model", "-m", help=f"Whisper model size. Options: {', '.join(MODELS)}"),
+        typer.Option(
+            "--model", "-m",
+            help=(
+                "Model to use. Whisper: tiny, base, small, medium, large-v3, large-v3-turbo, ... "
+                "Moonshine (English-only, requires [moonshine] extra): moonshine-tiny, moonshine-base."
+            ),
+        ),
     ] = "base",
     language: Annotated[
         Optional[str],
-        typer.Option("--language", "-l", help="Force language (e.g. 'fr', 'en'). Auto-detect if not set."),
+        typer.Option("--language", "-l", help="Force language (e.g. 'fr', 'en'). Auto-detect if not set. Ignored for Moonshine."),
     ] = None,
     task: Annotated[
         Task,
-        typer.Option("--task", "-t", help="'transcribe' to keep original language, 'translate' to translate to English."),
+        typer.Option("--task", "-t", help="'transcribe' to keep original language, 'translate' to translate to English. Ignored for Moonshine."),
     ] = Task.transcribe,
     output_dir: Annotated[
         Optional[Path],
@@ -92,8 +98,16 @@ def main(
       yt-whisper "https://youtube.com/watch?v=..." --language fr --task translate
     """
     if model not in MODELS:
-        err_console.print(f"[red]Unknown model '{model}'. Choose from: {', '.join(MODELS)}[/red]")
+        err_console.print(f"[red]Unknown model '{model}'.[/red]")
+        err_console.print(f"[dim]Whisper:[/dim] {', '.join(m for m in MODELS if m not in MOONSHINE_MODELS)}")
+        err_console.print(f"[dim]Moonshine:[/dim] {', '.join(MOONSHINE_MODELS)}")
         raise typer.Exit(1)
+
+    is_moonshine = model in MOONSHINE_MODELS
+    if is_moonshine and language and language != "en":
+        console.print(f"[yellow]Warning:[/yellow] Moonshine is English-only. Ignoring --language {language!r}.")
+    if is_moonshine and task == Task.translate:
+        console.print("[yellow]Warning:[/yellow] Moonshine does not support translation. Ignoring --task translate.")
 
     out_dir = output_dir or Path.cwd()
     out_dir.mkdir(parents=True, exist_ok=True)

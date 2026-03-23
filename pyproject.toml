@@ -31,13 +31,16 @@ dependencies = [
     "rich>=13.0.0",
 ]
 
-[project.scripts]
-yt-whisper = "yt_whisper.cli:app"
+[project.optional-dependencies]
+moonshine = ["useful-moonshine"]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/yt-whisper"
-Repository = "https://github.com/yourusername/yt-whisper"
-Issues = "https://github.com/yourusername/yt-whisper/issues"
+Homepage = "https://github.com/V0latix/YT-Whisper"
+Repository = "https://github.com/V0latix/YT-Whisper"
+Issues = "https://github.com/V0latix/YT-Whisper/issues"
+
+[project.scripts]
+yt-whisper = "yt_whisper.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/yt_whisper"]

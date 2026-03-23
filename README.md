@@ -21,13 +21,17 @@ winget install ffmpeg
 ## Installation
 
 ```bash
+# Whisper only (default)
 pip install yt-whisper
+
+# With Moonshine support
+pip install 'yt-whisper[moonshine]'
 ```
 
 Or install from source:
 
 ```bash
-git clone https://github.com/yourusername/yt-whisper
+git clone https://github.com/V0latix/YT-Whisper
 cd yt-whisper
 pip install -e .
 ```
@@ -45,13 +49,15 @@ Arguments:
   URL                    YouTube video URL [required]
 
 Options:
-  -m, --model TEXT       Whisper model size [default: base]
-                         tiny | tiny.en | base | base.en | small | small.en |
-                         medium | medium.en | large-v1 | large-v2 | large-v3 | large-v3-turbo
-  -l, --language TEXT    Force language (e.g. 'fr', 'en'). Auto-detect if not set.
+  -m, --model TEXT       Model to use [default: base]
+                         Whisper : tiny | tiny.en | base | base.en | small | small.en |
+                                   medium | medium.en | large-v1 | large-v2 | large-v3 | large-v3-turbo
+                         Moonshine: moonshine-tiny | moonshine-base  (English-only, requires [moonshine] extra)
+  -l, --language TEXT    Force language (e.g. 'fr', 'en'). Auto-detect if not set. Ignored for Moonshine.
   -t, --task [transcribe|translate]
                          transcribe = keep original language
                          translate  = translate to English [default: transcribe]
+                         (ignored for Moonshine)
   -o, --output-dir PATH  Directory to save output files [default: current directory]
   -f, --format [txt|srt|vtt|json|all]
                          Output format [default: txt]
@@ -95,14 +101,25 @@ yt-whisper "https://youtube.com/watch?v=..." --no-print
 
 ## Models
 
-| Model         | Parameters | English-only | Multilingual | Speed  |
-|---------------|-----------|--------------|--------------|--------|
-| tiny          | 39M       | ✓            | ✓            | ~32x   |
-| base          | 74M       | ✓            | ✓            | ~16x   |
-| small         | 244M      | ✓            | ✓            | ~6x    |
-| medium        | 769M      | ✓            | ✓            | ~2x    |
-| large-v3      | 1550M     | ✗            | ✓            | 1x     |
-| large-v3-turbo| 809M      | ✗            | ✓            | ~2x    |
+### Whisper (multilingual, default)
+
+| Model          | Parameters | Languages    | Speed   |
+|----------------|-----------|--------------|---------|
+| tiny           | 39M       | multilingual | ~32x    |
+| base           | 74M       | multilingual | ~16x    |
+| small          | 244M      | multilingual | ~6x     |
+| medium         | 769M      | multilingual | ~2x     |
+| large-v3       | 1550M     | multilingual | 1x      |
+| large-v3-turbo | 809M      | multilingual | ~2x     |
+
+### Moonshine (English-only, faster for short content)
+
+Requires `pip install 'yt-whisper[moonshine]'`. Moonshine scales compute with audio length (unlike Whisper's fixed 30s chunks), making it faster for short clips.
+
+| Model           | Parameters | WER   |
+|-----------------|-----------|-------|
+| moonshine-tiny  | 26M       | 12.7% |
+| moonshine-base  | 61M       | 10.1% |
 
 Models are downloaded automatically on first use and cached at `~/.cache/huggingface/`.
 
